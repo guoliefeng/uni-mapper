@@ -2,10 +2,6 @@
 
 #include <pcl/filters/voxel_grid.h>
 
-#include <small_gicp/pcl/pcl_point.hpp>
-#include <small_gicp/pcl/pcl_point_traits.hpp>
-#include <small_gicp/util/downsampling_tbb.hpp>
-
 // TODO(gil) : remove define
 #define NUM_PTS_LARGE_ENOUGH 200000
 #define NUM_PTS_LARGE_ENOUGH_FOR_MAP 20000000
@@ -43,10 +39,7 @@ void VoxelPointCloud(const pcl::PointCloud<PointT>::Ptr& cloud,
 void ErasorServer::setRawMap(pcl::PointCloud<pcl::PointXYZI>::Ptr& raw_map) {
   // copy raw map to map_arranged
   map_arranged_.reset(new pcl::PointCloud<pcl::PointXYZI>());
-  // TODO(gil) : use small gicp
-  //  VoxelPointCloud(raw_map, map_arranged_, cfg_.map_voxel_size_);
-  map_arranged_ =
-      small_gicp::voxelgrid_sampling_tbb(*raw_map, cfg_.map_voxel_size_);
+  VoxelPointCloud(raw_map, map_arranged_, cfg_.map_voxel_size_);
   num_pcs_init_ = map_arranged_->points.size();
   if (cfg_.is_large_scale_) {
     map_arranged_global_->reserve(NUM_PTS_LARGE_ENOUGH_FOR_MAP);
@@ -62,9 +55,7 @@ void ErasorServer::run(pcl::PointCloud<pcl::PointXYZI>::Ptr& scan,
   }
 
   pcl::PointCloud<PointT>::Ptr filter_pc(new pcl::PointCloud<PointT>());
-  // TODO(gil) : use small gicp
-  //  VoxelPointCloud(scan, filter_pc, cfg_.query_voxel_size_);
-  filter_pc = small_gicp::voxelgrid_sampling_tbb(*scan, cfg_.query_voxel_size_);
+  VoxelPointCloud(scan, filter_pc, cfg_.query_voxel_size_);
   // read pose in VIEWPOINT Field in pcd
   float x_curr = optimized_pose.translation().x();
   float y_curr = optimized_pose.translation().y();

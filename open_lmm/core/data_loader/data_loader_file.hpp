@@ -20,6 +20,7 @@ struct DataLoaderFileParam {
   std::string scan_dir_name;
   Eigen::Isometry3d extrinsic;
   float voxel_size;
+  float map_voxel_size;
   float min_range;
   float max_range;
   std::string delimiter;

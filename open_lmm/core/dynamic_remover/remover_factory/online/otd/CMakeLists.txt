@@ -19,8 +19,14 @@ add_library(otd SHARED)
 target_sources(otd PRIVATE ${SOURCES})
 target_link_libraries(otd
     PCL::PCL
+    open_lmm_utils
 )
 openlmm_set_global_target_properties(otd)
+install(TARGETS otd
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 add_library(create_otd SHARED)
 target_sources(create_otd PRIVATE 

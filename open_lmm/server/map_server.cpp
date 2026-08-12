@@ -31,6 +31,12 @@ void MapServer::parseConfig() {
       Config(GlobalConfig::get_global_config_path("config_map_server"));
   enable_map_updater_ =
       config_map_server_->param<bool>("map_server", "enable_map_updater", true);
+  save_optimized_map_ =
+      config_map_server_->param<bool>("map_server", "save_optimized_map", true);
+  save_merged_map_ =
+      config_map_server_->param<bool>("map_server", "save_merged_map", true);
+  merged_map_voxel_size_ = config_map_server_->param<float>(
+      "map_server", "merged_map_voxel_size", 0.5f);
 }
 
 // TODO(gil) : refactor process
@@ -43,6 +49,8 @@ void MapServer::process() {
   }
 
   if (enable_map_updater_) {
+    pcl::PointCloud<pcl::PointXYZI>::Ptr merged_map(
+        new pcl::PointCloud<pcl::PointXYZI>);
     for (int i = 0; i < agent_num_; i++) {
       const char robot_id = 'A' + i;
       MapUpdater map_updater(robot_id, shared_data_);
@@ -54,13 +62,26 @@ void MapServer::process() {
       auto ds_static_map =
           downsampleWithRangeFilter(static_map, 0.2, 0, 0, false);
       pcl::io::savePCDFileBinaryCompressed(output_map_file, *ds_static_map);
+
+      if (save_merged_map_) {
+        *merged_map += *downsampleWithRangeFilter(
+            static_map, merged_map_voxel_size_, 0, 0, false);
+      }
+    }
+
+    if (save_merged_map_ && !merged_map->empty()) {
+      merged_map = downsampleWithRangeFilter(
+          merged_map, merged_map_voxel_size_, 0, 0, false);
+      const fs::path output_map_file =
+          fs::path(output_save_dir_) / "global_map_merged.pcd";
+      pcl::io::savePCDFileBinaryCompressed(output_map_file, *merged_map);
     }
   }
 
   std::cout << "SAVING OPTIMIZED POSES & MAPS" << std::endl;
   saveOptimizedPoses(output_save_dir_);
 
-  if (!enable_map_updater_) {
+  if (!enable_map_updater_ && save_optimized_map_) {
     saveOptimizedMap(output_save_dir_);
   }
 
@@ -92,8 +113,11 @@ void MapServer::saveOptimizedPoses(const std::string& output_save_dir) {
 }
 
 void MapServer::saveOptimizedMap(const std::string& output_save_dir) {
+  fs::path output_save_dir_path(output_save_dir);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr merged_map(
+      new pcl::PointCloud<pcl::PointXYZI>);
+
   for (const auto& optimized_poses : shared_data_->db_optimized_poses) {
-    fs::path output_save_dir_path(output_save_dir_);
     const char agent_id = optimized_poses.first;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr optimized_map(
@@ -111,6 +135,19 @@ void MapServer::saveOptimizedMap(const std::string& output_save_dir) {
     fs::path output_map_file =
         output_save_dir_path / ("global_map_" + std::string{agent_id} + ".pcd");
     pcl::io::savePCDFileBinaryCompressed(output_map_file, *optimized_map);
+
+    if (save_merged_map_) {
+      *merged_map += *downsampleWithRangeFilter(
+          optimized_map, merged_map_voxel_size_, 0, 0, false);
+    }
+  }
+
+  if (save_merged_map_ && !merged_map->empty()) {
+    merged_map = downsampleWithRangeFilter(
+        merged_map, merged_map_voxel_size_, 0, 0, false);
+    const fs::path output_map_file =
+        output_save_dir_path / "global_map_merged.pcd";
+    pcl::io::savePCDFileBinaryCompressed(output_map_file, *merged_map);
   }
 }
 

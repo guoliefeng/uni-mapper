@@ -33,8 +33,14 @@ target_link_libraries(hmm_mos
     unordered_dense::unordered_dense
     PCL::PCL
     nanoflann::nanoflann
+    open_lmm_utils
 )
 openlmm_set_global_target_properties(hmm_mos)
+install(TARGETS hmm_mos
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 add_library(create_hmm_mos SHARED)
 target_sources(create_hmm_mos PRIVATE 

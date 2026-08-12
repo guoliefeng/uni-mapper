@@ -1,11 +1,14 @@
 #include "registration.hpp"
 
+#include <limits>
+
 #include <pcl/common/transforms.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
-#include <small_gicp/pcl/pcl_point.hpp>
-#include <small_gicp/pcl/pcl_point_traits.hpp>
-#include <small_gicp/pcl/pcl_registration.hpp>
+#include <small_gicp/registration/registration_helper.hpp>
+
+#include "pointcloud_utils.hpp"
 
 namespace open_lmm {
 pcl::PointCloud<pcl::PointXYZI>::Ptr createSubmap(
@@ -30,32 +33,49 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr createSubmap(
   return submap;
 }
 
-small_gicp::RegistrationPCL<pcl::PointXYZI, pcl::PointXYZI> setupRegistration(
-    const pcl::PointCloud<pcl::PointXYZI>::Ptr& source,
-    const pcl::PointCloud<pcl::PointXYZI>::Ptr& target) {
-  small_gicp::RegistrationPCL<pcl::PointXYZI, pcl::PointXYZI> reg;
-  reg.setRegistrationType("GICP");  // "GICP" or "VGICP" (default = "GICP")
-  // reg.setVoxelResolution(1.0);
-  reg.setNumThreads(16);
-  reg.setMaxCorrespondenceDistance(150.0);
-  reg.setInputSource(source);
-  reg.setInputTarget(target);
-  // gicp.setMaximumIterations(100);
-  // gicp.setTransformationEpsilon(1e-6);
-  // gicp.setEuclideanFitnessEpsilon(1e-6);
-  // gicp.setRANSACIterations(0);
-  return reg;
-}
-
 std::optional<Eigen::Isometry3d> calculateFinalTransform(
-    small_gicp::RegistrationPCL<pcl::PointXYZI, pcl::PointXYZI>& reg,
-    const Eigen::Isometry3d& init_rel_pose) {
-  if (reg.hasConverged() == false || reg.getFitnessScore() > 0.5) {
+    const small_gicp::RegistrationResult& result,
+    const Eigen::Isometry3d& init_rel_pose, const double fitness) {
+  if (!result.converged || fitness > 0.5) {
     return std::nullopt;
   }
-  Eigen::Isometry3d T_to_rot;
-  T_to_rot = reg.getFinalTransformation().cast<double>();
-  return (T_to_rot * init_rel_pose).inverse();
+  return (result.T_target_source * init_rel_pose).inverse();
+}
+
+double calculateFitnessScore(
+    const pcl::PointCloud<pcl::PointXYZI>::Ptr& source,
+    const pcl::PointCloud<pcl::PointXYZI>::Ptr& target,
+    const Eigen::Isometry3d& target_source) {
+  if (source->empty() || target->empty()) {
+    return std::numeric_limits<double>::infinity();
+  }
+
+  pcl::KdTreeFLANN<pcl::PointXYZI> target_tree;
+  target_tree.setInputCloud(target);
+
+  double squared_error = 0.0;
+  size_t correspondence_count = 0;
+  std::vector<int> nearest_index(1);
+  std::vector<float> nearest_squared_distance(1);
+
+  for (const auto& source_point : *source) {
+    const Eigen::Vector3d transformed =
+        target_source * source_point.getVector3fMap().cast<double>();
+    pcl::PointXYZI transformed_point;
+    transformed_point.x = static_cast<float>(transformed.x());
+    transformed_point.y = static_cast<float>(transformed.y());
+    transformed_point.z = static_cast<float>(transformed.z());
+
+    if (target_tree.nearestKSearch(transformed_point, 1, nearest_index,
+                                   nearest_squared_distance) > 0) {
+      squared_error += nearest_squared_distance.front();
+      ++correspondence_count;
+    }
+  }
+
+  return correspondence_count == 0
+             ? std::numeric_limits<double>::infinity()
+             : squared_error / static_cast<double>(correspondence_count);
 }
 
 std::optional<Eigen::Isometry3d> registerPointCloud(const SharedDatabase& db,
@@ -77,12 +97,28 @@ std::optional<Eigen::Isometry3d> registerPointCloud(const SharedDatabase& db,
   pcl::transformPointCloud(*scan_from, *scan_init_from,
                            loop_pair.init_rel_pose.matrix());
 
-  auto reg = setupRegistration(scan_init_from, submap_to);
-  pcl::PointCloud<pcl::PointXYZI>::Ptr aligned(
-      new pcl::PointCloud<pcl::PointXYZI>);
-  reg.align(*aligned);
+  std::vector<Eigen::Vector3f> source_points;
+  std::vector<Eigen::Vector3f> target_points;
+  pclToEigen(*scan_init_from, source_points);
+  pclToEigen(*submap_to, target_points);
 
-  return calculateFinalTransform(reg, loop_pair.init_rel_pose);
+  constexpr size_t kMinimumRegistrationPoints = 10;
+  if (source_points.size() < kMinimumRegistrationPoints ||
+      target_points.size() < kMinimumRegistrationPoints) {
+    return std::nullopt;
+  }
+
+  small_gicp::RegistrationSetting setting;
+  setting.type = small_gicp::RegistrationSetting::GICP;
+  setting.num_threads = 16;
+  setting.max_correspondence_distance = 150.0;
+  const auto result = small_gicp::align(
+      target_points, source_points, Eigen::Isometry3d::Identity(), setting);
+
+  const double fitness = calculateFitnessScore(
+      scan_init_from, submap_to, result.T_target_source);
+
+  return calculateFinalTransform(result, loop_pair.init_rel_pose, fitness);
 }
 
 }  // namespace open_lmm

@@ -1,8 +1,8 @@
 // STL
-#include <iostream>
+#include <filesystem>
+#include <stdexcept>
 
 // ROS2
-#include <ament_index_cpp/get_package_prefix.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
@@ -21,12 +21,27 @@ OpenLMMROS::OpenLMMROS(const rclcpp::NodeOptions &options)
   this->declare_parameter<std::string>("config_path", "config");
   this->get_parameter<std::string>("config_path", config_path);
 
-  if (config_path[0] != '/') {
-    config_path = ament_index_cpp::get_package_share_directory("open_lmm") +
-                  "/" + config_path;
+  if (config_path.empty()) {
+    throw std::invalid_argument("The 'config_path' parameter must not be empty");
   }
 
-  open_lmm::GlobalConfig::instance(config_path);
+  std::filesystem::path resolved_config_path(config_path);
+  if (resolved_config_path.is_relative()) {
+    resolved_config_path =
+        std::filesystem::path(
+            ament_index_cpp::get_package_share_directory("open_lmm")) /
+        resolved_config_path;
+  }
+  resolved_config_path = resolved_config_path.lexically_normal();
+
+  if (!std::filesystem::is_regular_file(resolved_config_path / "config.json")) {
+    throw std::runtime_error("Configuration file not found: " +
+                             (resolved_config_path / "config.json").string());
+  }
+
+  RCLCPP_INFO(this->get_logger(), "Using configuration directory: %s",
+              resolved_config_path.c_str());
+  open_lmm::GlobalConfig::instance(resolved_config_path.string());
 
   open_lmm::MapServer map_server;
   map_server.process();

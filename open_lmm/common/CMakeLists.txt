@@ -10,6 +10,7 @@ target_link_libraries(open_lmm_common PUBLIC
   PCL::PCL
   gtsam
   small_gicp
+  nanoflann::nanoflann
   TBB::tbb
   TBB::tbbmalloc
 )

@@ -32,5 +32,6 @@ target_sources(open_lmm_utils PRIVATE
 target_link_libraries(open_lmm_utils PUBLIC
   Eigen3::Eigen
   nlohmann_json::nlohmann_json
+  spdlog::spdlog
 )
 openlmm_set_global_target_properties(open_lmm_utils)

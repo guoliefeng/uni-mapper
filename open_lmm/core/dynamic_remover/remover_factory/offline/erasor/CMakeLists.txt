@@ -34,10 +34,15 @@ add_library(erasor SHARED erasor.cpp
 )
 target_link_libraries(erasor 
     Eigen3::Eigen 
-    PCL::PCL 
-    small_gicp
+    PCL::PCL
+    open_lmm_utils
 )
 openlmm_set_global_target_properties(erasor)
+install(TARGETS erasor
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 add_library(create_erasor SHARED 
     create_erasor.cpp

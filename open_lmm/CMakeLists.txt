@@ -32,6 +32,7 @@ endif()
 
 # Set build
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -42,6 +43,21 @@ set(OPEN_LMM_CREATE_LIBRARIES "" CACHE INTERNAL "List of all OpenLMM create libr
 
 # Custom cmake settings and find dependencies
 include(cmake/CompilerOptions.cmake)
+# GTSAM's exported target references these Boost imported targets. Older CMake
+# FindBoost versions (including Ubuntu 20.04's) do not create them unless the
+# components are requested explicitly.
+find_package(Boost REQUIRED COMPONENTS chrono serialization thread timer)
+# Prefer the distro package over a Conda package when both are visible. This
+# keeps installed ROS binaries independent of an active Conda environment.
+if(CMAKE_LIBRARY_ARCHITECTURE)
+  find_package(spdlog QUIET CONFIG
+    PATHS "/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/spdlog"
+    NO_DEFAULT_PATH
+  )
+endif()
+if(NOT spdlog_FOUND)
+  find_package(spdlog REQUIRED)
+endif()
 include(thirdparty/find_dependencies.cmake)
 
 
@@ -63,17 +79,31 @@ foreach(create_target ${OPEN_LMM_CREATE_LIBRARIES})
   )
 endforeach()
 
+# open_lmm_utils is the core shared library required by the ROS wrapper and the
+# dynamically loaded remover implementations. The remaining core libraries are
+# linked statically.
+install(TARGETS open_lmm_utils
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
 ### if ROS-related ###
 if(DEFINED ENV{ROS_VERSION})
-  if($ENV{ROS_VERSION} EQUAL 2)
+  if("$ENV{ROS_VERSION}" STREQUAL "2")
     # ROS2
-    find_package(ament_cmake REQUIRED)
-    install(DIRECTORY config DESTINATION share/${PROJECT_NAME}/)
-    ament_package()
-  elseif($ENV{ROS_VERSION} EQUAL 1)
-    # ROS1 : not supported
-    # find_package(catkin REQUIRED)
-    # install(DIRECTORY config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+    if(NOT OPEN_LMM_EMBEDDED_BUILD)
+      find_package(ament_cmake REQUIRED)
+      install(DIRECTORY config DESTINATION share/${PROJECT_NAME}/)
+      ament_package()
+    endif()
+  elseif("$ENV{ROS_VERSION}" STREQUAL "1")
+    # ROS1
+    if(NOT OPEN_LMM_EMBEDDED_BUILD)
+      find_package(catkin REQUIRED)
+      catkin_package(LIBRARIES open_lmm_utils)
+      install(DIRECTORY config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+    endif()
   endif()
 endif()
 

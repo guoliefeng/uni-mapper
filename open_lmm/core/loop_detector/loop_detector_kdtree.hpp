@@ -24,6 +24,9 @@ struct KdtreeParams {
   double distance_threshold{0.2};
   size_t kdtree_rebuild_threshold{50};
   std::string model;
+  float map_matcher_voxel_size{2.0f};
+  float map_loop_distance_threshold{10.0f};
+  bool map_matcher_use_quatro{true};
 };
 
 /**

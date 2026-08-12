@@ -8,9 +8,11 @@
   <license>TODO</license>
 
   <!-- buildtool depend -->
+  <buildtool_depend condition="$ROS_VERSION == 1">catkin</buildtool_depend>
   <buildtool_depend condition="$ROS_VERSION == 2">ament_cmake</buildtool_depend>
 
   <!-- common -->
+  <depend>open_lmm</depend>
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
   <depend>nav_msgs</depend>
@@ -18,7 +20,12 @@
   <depend>geometry_msgs</depend>
   <depend>tf2_ros</depend>
 
+  <!-- ros1 depend -->
+  <depend condition="$ROS_VERSION == 1">roscpp</depend>
+  <depend condition="$ROS_VERSION == 1">roslib</depend>
+
   <!-- ros2 depend-->
+  <depend condition="$ROS_VERSION == 2">ament_index_cpp</depend>
   <depend condition="$ROS_VERSION == 2">rclcpp</depend>
   <depend condition="$ROS_VERSION == 2">rclcpp_components</depend>
   <depend condition="$ROS_VERSION == 2">rosbag2_cpp</depend>
@@ -26,6 +33,7 @@
   <test_depend condition="$ROS_VERSION == 2">ament_lint_auto</test_depend>
   <test_depend condition="$ROS_VERSION == 2">ament_lint_common</test_depend>
   <export>
+    <build_type condition="$ROS_VERSION == 1">catkin</build_type>
     <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
   </export>
 

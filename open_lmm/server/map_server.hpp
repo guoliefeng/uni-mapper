@@ -27,6 +27,9 @@ class MapServer {
   std::string output_save_dir_;
   std::optional<Config> config_map_server_;
   bool enable_map_updater_;
+  bool save_optimized_map_;
+  bool save_merged_map_;
+  float merged_map_voxel_size_;
 };
 
 }  // namespace open_lmm

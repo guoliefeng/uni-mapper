@@ -47,6 +47,8 @@ void DataLoaderFile::parseConfig(Config config) {
   param_.extrinsic = config.param<Eigen::Isometry3d>(
       "data_loader", "extrinsic", Eigen::Isometry3d::Identity());
   param_.voxel_size = config.param<float>("data_loader", "voxel_size", 0.1f);
+  param_.map_voxel_size =
+      config.param<float>("data_loader", "map_voxel_size", 2.0f);
   param_.min_range = config.param<float>("data_loader", "min_range", 0.0f);
   param_.max_range = config.param<float>("data_loader", "max_range", 100.0f);
   param_.delimiter = config.param<std::string>("data_loader", "delimiter", " ");
@@ -76,9 +78,8 @@ std::tuple<PoseVec, ScanVec, ScanVec> DataLoaderFile::process(
   std::vector<Eigen::Vector3f> points;
   pclToEigen(*map, points);
 
-  // TODO(gil) : hardcoded voxel leaf size
   pcl::PointCloud<pcl::PointXYZI>::Ptr map_ds =
-      downsampleWithRangeFilter(map, 2.0, 0, 0, false);
+      downsampleWithRangeFilter(map, param_.map_voxel_size, 0, 0, false);
   std::vector<int> tmp_indices;
   pcl::removeNaNFromPointCloud(*map_ds, *map_ds, tmp_indices);
   std::vector<Eigen::Vector3f> tmp_points;

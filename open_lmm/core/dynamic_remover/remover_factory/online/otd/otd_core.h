@@ -447,9 +447,12 @@ void Otd3D<PointT>::SaveMap(std::string savepath) {
 template <typename PointT>
 typename pcl::PointCloud<PointT>::Ptr Otd3D<PointT>::GetMap(
     bool replace_intensity) {
-  auto ground_map = std::make_shared<pcl::PointCloud<PointT>>();
-  auto nonground_map = std::make_shared<pcl::PointCloud<PointT>>();
-  auto dynamic_map = std::make_shared<pcl::PointCloud<PointT>>();
+  typename pcl::PointCloud<PointT>::Ptr ground_map(
+      new pcl::PointCloud<PointT>());
+  typename pcl::PointCloud<PointT>::Ptr nonground_map(
+      new pcl::PointCloud<PointT>());
+  typename pcl::PointCloud<PointT>::Ptr dynamic_map(
+      new pcl::PointCloud<PointT>());
   for (auto iter = ground_map_.begin(); iter != ground_map_.end(); iter++) {
     iter->second->second.GetGroundPoints(ground_map);
   }
@@ -459,7 +462,8 @@ typename pcl::PointCloud<PointT>::Ptr Otd3D<PointT>::GetMap(
     iter->second->second.GetDynamicPoints(dynamic_map);
   }
 
-  auto global_static_map = std::make_shared<pcl::PointCloud<PointT>>();
+  typename pcl::PointCloud<PointT>::Ptr global_static_map(
+      new pcl::PointCloud<PointT>());
   for (auto& point : *ground_map) {
     point.intensity = 0.0F;
   }

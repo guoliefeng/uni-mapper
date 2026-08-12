@@ -18,6 +18,12 @@ KdtreeParams::KdtreeParams() {
   kdtree_rebuild_threshold =
       config.param<int>("database", "rebuild_threshold", 50);
   model = config.param<std::string>("loop_detector", "model", "");
+  map_matcher_voxel_size = config.param<float>(
+      "loop_detector", "map_matcher_voxel_size", 2.0f);
+  map_loop_distance_threshold = config.param<float>(
+      "loop_detector", "map_loop_distance_threshold", 10.0f);
+  map_matcher_use_quatro = config.param<bool>(
+      "loop_detector", "map_matcher_use_quatro", true);
 }
 
 LoopDetectorKdtree::LoopDetectorKdtree(const KdtreeParams& params)
@@ -151,8 +157,6 @@ std::vector<LoopPair> LoopDetectorKdtree::findLoopPairsFromKdTree(
 std::vector<LoopPair> LoopDetectorKdtree::detectKissMatcherLoops(
     std::shared_ptr<SharedDatabase>& shared_data, char agent_id) {
   std::vector<LoopPair> additional_loops;
-  constexpr float kMapMatchingThreshold = 2.0f;
-  constexpr float kDistanceThreshold = 10.0f;
 
   if (agent_id == 'A') {
     shared_data->db_merged_map = shared_data->db_original_maps[agent_id];
@@ -162,7 +166,8 @@ std::vector<LoopPair> LoopDetectorKdtree::detectKissMatcherLoops(
   Eigen::Matrix4f relative_map_pose;
   if (!TryKissMatcher(shared_data->db_merged_map,
                       shared_data->db_original_maps[agent_id],
-                      kMapMatchingThreshold, false, relative_map_pose)) {
+                      params_.map_matcher_voxel_size,
+                      params_.map_matcher_use_quatro, relative_map_pose)) {
     return additional_loops;  // If map matching fails, return empty vector
   }
 
@@ -172,7 +177,7 @@ std::vector<LoopPair> LoopDetectorKdtree::detectKissMatcherLoops(
 
   // Find additional loop pairs using KdTree search
   additional_loops = findLoopPairsFromKdTree(shared_data, transformed_poses,
-                                             agent_id, kDistanceThreshold);
+      agent_id, params_.map_loop_distance_threshold);
 
   // Transform and merge map points
   auto transformed_map_points = transformEigenPoints(

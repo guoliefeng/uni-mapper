@@ -85,7 +85,7 @@ Our approach consists of three core components: dynamic object removal, dynamic-
 
 
 ## Local Setting
-### System requirenments
+### System requirements (ROS2)
 - [Ubuntu 22.04](https://releases.ubuntu.com/jammy/)
 - [ROS2 Humble](https://docs.ros.org/en/humble/index.html)
 - [GTSAM 4.2a9](https://github.com/borglab/gtsam/releases/tag/4.2a9)
@@ -108,6 +108,47 @@ colcon build --symlink-install
 source install/setup.bash
 ros2 run open_lmm_ros open_lmm_rosnode
 ```
+
+### ROS1 Noetic build
+
+ROS1 support targets Ubuntu 20.04 with ROS Noetic. The remaining dependencies,
+including GTSAM, are the same as for the ROS2 build.
+
+```bash
+# 1. Create a catkin workspace and clone the repository.
+mkdir -p ws_OpenLMM/src
+cd ws_OpenLMM/src
+git clone https://github.com/sparolab/uni-mapper.git open-lmm
+
+# 2. Build from the workspace root.
+cd ..
+source /opt/ros/noetic/setup.bash
+sudo apt install liblzf-dev libspdlog-dev
+catkin_make
+
+# 3. Run with the default configuration directory.
+source devel/setup.bash
+roslaunch open_lmm_ros open_lmm.launch
+
+# An absolute configuration directory can be supplied when needed.
+roslaunch open_lmm_ros open_lmm.launch config_path:=/path/to/config
+```
+
+The ROS1 node reads the private parameter `~config_path`. A relative value is
+resolved against the `open_lmm` package directory; the directory must contain
+`config.json`.
+
+When `save_optimized_map` and `save_merged_map` are enabled in
+`config_map_server.json`, the result directory contains the per-agent maps and
+an additional `global_map_merged.pcd`. `merged_map_voxel_size` controls the
+resolution of that combined map. For datasets whose input poses already share
+a trusted global frame, `enable_inter_agent_optimization` can be disabled in
+the incremental backend configuration while retaining intra-agent loop
+optimization and merged-map output.
+
+On Ubuntu 20.04's default GCC 9, DUFOMap is disabled because its UFOMap
+dependency requires C++20 concepts. To build that optional module, use GCC 10+
+and pass `-DOPEN_LMM_BUILD_DUFOMAP=ON` to `catkin_make`.
 
 ## Docker Setting
 ### System requirenments

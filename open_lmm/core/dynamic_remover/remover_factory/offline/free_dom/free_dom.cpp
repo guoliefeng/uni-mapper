@@ -187,8 +187,11 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr FreeDom::getStaticMap() {
         Point point =
             block_bias + voxel_bias + static_voxel.points[j].cast<double>();
 
-        pointcloud_point->emplace_back(
-            pcl::PointXYZI(point.x(), point.y(), point.z()));
+        pcl::PointXYZI pcl_point;
+        pcl_point.x = static_cast<float>(point.x());
+        pcl_point.y = static_cast<float>(point.y());
+        pcl_point.z = static_cast<float>(point.z());
+        pointcloud_point->push_back(pcl_point);
         incrementIdx(local_subvoxel_idx, voxel_idx_size);
       }
       incrementIdx(local_voxel_idx, block_idx_size);

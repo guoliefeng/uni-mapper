@@ -10,6 +10,7 @@ struct BackendOptimizerIncrementalParam {
   std::string backend_optimizer_type;
   double relinearize_threshold;
   int relinearize_skip;
+  bool enable_inter_agent_optimization;
 };
 
 class BackendOptimizerIncremental : public BackendOptimizerBase {

@@ -3,6 +3,7 @@
     "backend_optimizer_type": "incremental",
     // isam params
     "relinearizeThreshold": 0.1,
-    "relinearizeSkip": 1
+    "relinearizeSkip": 1,
+    "enable_inter_agent_optimization": true
   }
 }

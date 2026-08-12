@@ -2,7 +2,6 @@
 
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/inference/Symbol.h>
-#include <gtsam/nonlinear/GncOptimizer.h>
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/nonlinear/Values.h>
@@ -27,6 +26,8 @@ void BackendOptimizerIncremental::parseConfig(Config config) {
       config.param<double>("backend_optimizer", "relinearizeThreshold", 0.1);
   param_.relinearize_skip =
       config.param<int>("backend_optimizer", "relinearizeSkip", 1);
+  param_.enable_inter_agent_optimization = config.param<bool>(
+      "backend_optimizer", "enable_inter_agent_optimization", true);
 }
 
 std::vector<std::pair<int, Eigen::Isometry3d>>
@@ -71,6 +72,7 @@ BackendOptimizerIncremental::process(
   }
 
   //! 3. add intra-agent loop
+  size_t accepted_intra_loops = 0;
   auto T1 = tq::tqdm(intra_loops);
   T1.set_prefix("Intra Backend Optimizer");
   for (auto loop : T1) {
@@ -84,12 +86,16 @@ BackendOptimizerIncremental::process(
       shared_data->graph.add(gtsam::BetweenFactor<gtsam::Pose3>(
           node_from, node_to, gtsam::Pose3(refined_pose_mat),
           robust_loop_noise_));
+      ++accepted_intra_loops;
     }
   }
   T1.finish();
+  std::cout << "Accepted intra-agent loops: " << accepted_intra_loops << "/"
+            << intra_loops.size() << std::endl;
 
   //! 4. add inter-agent loop
-  if (agent_id != 'A') {
+  size_t accepted_inter_loops = 0;
+  if (agent_id != 'A' && param_.enable_inter_agent_optimization) {
     auto T2 = tq::tqdm(inter_loops);
     T2.set_prefix("Inter Backend Optimizer");
     for (auto loop : T2) {
@@ -104,6 +110,7 @@ BackendOptimizerIncremental::process(
         shared_data->graph.add(gtsam::BetweenFactor<gtsam::Pose3>(
             node_from, node_to, gtsam::Pose3(refined_pose_mat),
             robust_loop_noise_));
+        ++accepted_inter_loops;
         // shared_data->graph.add(gtsam::BetweenFactorWithAnchoring<gtsam::Pose3>(
         //   node_to, node_from,
         //   anchor_symbol_to, anchor_symbol,
@@ -112,6 +119,11 @@ BackendOptimizerIncremental::process(
       }
     }
     T2.finish();
+    std::cout << "Accepted inter-agent loops: " << accepted_inter_loops << "/"
+              << inter_loops.size() << std::endl;
+  } else if (agent_id != 'A') {
+    std::cout << "Inter-agent optimization disabled; skipped "
+              << inter_loops.size() << " loop candidates" << std::endl;
   }
 
   gtsam::ISAM2Params isam_param;

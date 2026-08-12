@@ -39,6 +39,11 @@ bool LoopDetectorBase::TryKissMatcher(
   size_t num_rot_inliers = matcher.getNumRotationInliers();
   size_t num_final_inliers = matcher.getNumFinalInliers();
 
+  std::cout << "KISS-MATCHER transform (source -> target):\n"
+            << solution_eigen << "\n"
+            << "KISS-MATCHER inliers: rotation=" << num_rot_inliers
+            << ", final=" << num_final_inliers << std::endl;
+
   size_t thres_num_inliers = 5;
   if (num_final_inliers < thres_num_inliers) {
     std::cout << "\033[1;33m=> KISS-MATCHER might have failed :(\033[0m\n";

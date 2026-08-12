@@ -5,7 +5,10 @@
     // scan_context params
     "num_ring": 20,
     "num_sector": 60,
-    "max_range": 50
+    "max_range": 50,
+    "map_matcher_voxel_size": 2.0,
+    "map_matcher_use_quatro": true,
+    "map_loop_distance_threshold": 10.0
     // "search_ratio": 0.1
   }, 
   "database": {

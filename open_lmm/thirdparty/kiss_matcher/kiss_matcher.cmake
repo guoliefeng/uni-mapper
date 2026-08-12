@@ -40,7 +40,7 @@ if(NOT kiss_matcher_POPULATED)
     # Emulate the SYSTEM flag introduced in CMake 3.25. Withouth this flag the compiler will
     # consider this 3rdparty headers as source code and fail due the -Werror flag.
     add_subdirectory(${kiss_matcher_SOURCE_DIR}/cpp/kiss_matcher ${kiss_matcher_BINARY_DIR}/kiss_matcher EXCLUDE_FROM_ALL)
-    get_target_property(kiss_matcher_include_dirs kiss_matcher INTERFACE_INCLUDE_DIRECTORIES)
-    set_target_properties(kiss_matcher PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${kiss_matcher_include_dirs}")
+    get_target_property(kiss_matcher_include_dirs kiss_matcher_core INTERFACE_INCLUDE_DIRECTORIES)
+    set_target_properties(kiss_matcher_core PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${kiss_matcher_include_dirs}")
   endif()
 endif()

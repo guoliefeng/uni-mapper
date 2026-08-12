@@ -1,5 +1,11 @@
 --- a/cpp/kiss_matcher/CMakeLists.txt
 +++ b/cpp/kiss_matcher/CMakeLists.txt
+@@ -1,1 +1,1 @@
+-cmake_minimum_required(VERSION 3.24)
++cmake_minimum_required(VERSION 3.16)
+
+--- a/cpp/kiss_matcher/CMakeLists.txt
++++ b/cpp/kiss_matcher/CMakeLists.txt
 @@ -23,1 +23,1 @@
 -option(USE_SYSTEM_ROBIN "Use system pre-installed ROBIN from SPARK @ MIT" ON)
 +option(USE_SYSTEM_ROBIN "Use system pre-installed ROBIN from SPARK @ MIT" OFF)

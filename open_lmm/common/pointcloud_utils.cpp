@@ -87,15 +87,20 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr downsampleWithRangeFilter(
 
   const uint32_t num_scan_filtered = static_cast<uint32_t>(voxel_map.size());
   pcl::PointCloud<pcl::PointXYZI>::Ptr p_scan_filtered =
-      std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
+      pcl::PointCloud<pcl::PointXYZI>::Ptr(
+          new pcl::PointCloud<pcl::PointXYZI>());
   p_scan_filtered->resize(num_scan_filtered);
 
   std::transform(voxel_map.begin(), voxel_map.end(), p_scan_filtered->begin(),
                  [](const auto& item) -> pcl::PointXYZI {
                    const auto& p = item.second;
                    const float inv_count = 1.0f / p.count;
-                   return {p.xyz[0] * inv_count, p.xyz[1] * inv_count,
-                           p.xyz[2] * inv_count, p.intensity * inv_count};
+                   pcl::PointXYZI point;
+                   point.x = p.xyz[0] * inv_count;
+                   point.y = p.xyz[1] * inv_count;
+                   point.z = p.xyz[2] * inv_count;
+                   point.intensity = p.intensity * inv_count;
+                   return point;
                  });
 
   return p_scan_filtered;
@@ -125,12 +130,19 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr readPointsFromBin(
   while (input.good() && !input.eof()) {
     Eigen::Vector3f point;
     float intensity;
-    input.read((char*)&point.x(), sizeof(float));
-    input.read((char*)&point.y(), sizeof(float));
-    input.read((char*)&point.z(), sizeof(float));
-    input.read((char*)&intensity, sizeof(float));
-    cloud->push_back(
-        pcl::PointXYZI(point.x(), point.y(), point.z(), intensity));
+    if (!input.read(reinterpret_cast<char*>(&point.x()), sizeof(float)) ||
+        !input.read(reinterpret_cast<char*>(&point.y()), sizeof(float)) ||
+        !input.read(reinterpret_cast<char*>(&point.z()), sizeof(float)) ||
+        !input.read(reinterpret_cast<char*>(&intensity), sizeof(float))) {
+      break;
+    }
+
+    pcl::PointXYZI pcl_point;
+    pcl_point.x = point.x();
+    pcl_point.y = point.y();
+    pcl_point.z = point.z();
+    pcl_point.intensity = intensity;
+    cloud->push_back(pcl_point);
   }
   return cloud;
 }

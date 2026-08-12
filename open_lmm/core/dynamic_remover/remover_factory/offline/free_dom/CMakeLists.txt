@@ -26,8 +26,14 @@ target_sources(free_dom PRIVATE ${SOURCES})
 target_link_libraries(free_dom
     PCL::PCL
     ${OpenCV_LIBS}
+    open_lmm_utils
 )
 openlmm_set_global_target_properties(free_dom)
+install(TARGETS free_dom
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 add_library(create_free_dom SHARED)
 target_sources(create_free_dom PRIVATE 
