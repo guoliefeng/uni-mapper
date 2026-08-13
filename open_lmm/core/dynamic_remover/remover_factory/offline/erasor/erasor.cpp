@@ -1,6 +1,8 @@
-#include "erasor.hpp"
+#include <pcl/common/transforms.h>
 
-#include <pcl/filters/voxel_grid.h>
+#include <open_lmm/common/pointcloud_utils.hpp>
+
+#include "erasor.hpp"
 
 // TODO(gil) : remove define
 #define NUM_PTS_LARGE_ENOUGH 200000
@@ -30,10 +32,13 @@ void VoxelPointCloud(const pcl::PointCloud<PointT>::Ptr& cloud,
     *cloud_voxelized = *cloud;
     return;
   }
-  pcl::VoxelGrid<PointT> voxel_grid;
-  voxel_grid.setInputCloud(cloud);
-  voxel_grid.setLeafSize(voxel_size, voxel_size, voxel_size);
-  voxel_grid.filter(*cloud_voxelized);
+  // pcl::VoxelGrid builds a dense linear voxel index.  At 0.2 m, the Hainan
+  // map's 3-D bounding-box product exceeds int32 even though the cloud itself
+  // is modest, causing PCL to skip filtering.  Uni-Mapper already provides a
+  // sparse hash-grid downsampler, which preserves the requested leaf size for
+  // large-area maps.
+  cloud_voxelized = open_lmm::downsampleWithRangeFilter(
+      cloud, static_cast<float>(voxel_size), 0.0f, 0.0f, false);
 }
 
 void ErasorServer::setRawMap(pcl::PointCloud<pcl::PointXYZI>::Ptr& raw_map) {
@@ -56,6 +61,12 @@ void ErasorServer::run(pcl::PointCloud<pcl::PointXYZI>::Ptr& scan,
 
   pcl::PointCloud<PointT>::Ptr filter_pc(new pcl::PointCloud<PointT>());
   VoxelPointCloud(scan, filter_pc, cfg_.query_voxel_size_);
+  // Uni-Mapper's file-based loader keeps every keyframe in the LiDAR/body
+  // frame.  ERASOR compares the query against map_arranged_, which is in the
+  // optimized world frame, so both inputs to fetch_VoI() must share that
+  // frame.  FreeDOM and the online removers apply this transform internally;
+  // ERASOR is the only offline plugin that needs it here.
+  pcl::transformPointCloud(*filter_pc, *filter_pc, optimized_pose.matrix());
   // read pose in VIEWPOINT Field in pcd
   float x_curr = optimized_pose.translation().x();
   float y_curr = optimized_pose.translation().y();

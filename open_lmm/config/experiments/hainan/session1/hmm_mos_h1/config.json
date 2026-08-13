@@ -1,0 +1,13 @@
+{
+  "global": {
+    "config_path": "", "config_map_server": "../../common/map_server_dynamic.json",
+    "config_data_loader": "../../../../core/data_loader/file_based.json",
+    "config_loop_detector": "../../../../core/loop_detector/scan_context.json",
+    "config_backend_optimizer": "../../../../core/backend_optimizer/incremental.json",
+    "config_dynamic_remover": "dynamic_remover.json"
+  },
+  "directory": {
+    "root_dir_path": "/home/glf/dataDisk/hainan/yangpu/out/uni_mapper", "sub_dir_list": ["session1"],
+    "root_save_dir": "/home/glf/dataDisk/Study/uni_mapper_ws/src/uni-mapper/experiment_results/hainan_dynamic_removal/session1/hmm_mos/_runs_h1"
+  }
+}

@@ -6,4 +6,5 @@ log/
 data/
 output/
 
-docs/
+experiment_results/
+__pycache__/

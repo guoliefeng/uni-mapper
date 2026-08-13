@@ -1,0 +1,8 @@
+[
+  {"id": 1, "name": "suspected_vehicle_trails", "bounds": [415, 475, -85, -45]},
+  {"id": 2, "name": "container_edges", "bounds": [515, 585, 0, 58]},
+  {"id": 3, "name": "curb_and_road_edge", "bounds": [315, 385, -145, -100]},
+  {"id": 4, "name": "wall_building_edge", "bounds": [570, 635, 80, 140]},
+  {"id": 5, "name": "far_sparse_returns", "bounds": [630, 695, 90, 155]},
+  {"id": 6, "name": "thin_poles_or_fence", "bounds": [455, 500, 100, 145]}
+]
